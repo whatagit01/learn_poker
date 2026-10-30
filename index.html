@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pot Logic — Poker Maths Made Practical</title>
+  <meta name="description" content="Pot odds, outs, SPR and implied odds calculator that tells you the best action — plus endless generated practice questions." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="chip" aria-hidden="true"></span>
+      <div>
+        <h1>Pot Logic</h1>
+        <p>Poker maths → the next best action</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" class="tab active" data-tab="analyse">Analyse</button>
+      <button role="tab" class="tab" data-tab="practice">Practice</button>
+      <button role="tab" class="tab" data-tab="learn">Learn</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ANALYSE -->
+    <section id="analyse" class="panel active">
+      <div class="card table-card">
+        <div class="felt" id="felt">
+          <div id="seats"></div>
+          <div class="felt-center">
+            <div class="board" id="board"></div>
+            <div class="pot-pill">Pot <b id="tPot">0</b></div>
+          </div>
+          <div class="hero-seat">
+            <div class="hole" id="hole"></div>
+            <div class="seat-label">You · <b id="tStack">0</b></div>
+          </div>
+        </div>
+        <div class="table-info" id="tableInfo">Tap the card spaces to add your hole cards and the board (optional).</div>
+        <div class="table-controls">
+          <div class="stepper"><span>Opponents</span><button type="button" data-step="opp" data-d="-1">−</button><b id="oppN">1</b><button type="button" data-step="opp" data-d="1">+</button></div>
+          <div class="stepper"><span>Already called the bet</span><button type="button" data-step="callers" data-d="-1">−</button><b id="callersN">0</b><button type="button" data-step="callers" data-d="1">+</button></div>
+          <button type="button" class="ghost" id="clearCards">Clear cards</button>
+        </div>
+      </div>
+
+      <div class="picker" id="picker" hidden>
+        <div class="picker-box">
+          <div class="picker-top"><b id="pickerTitle">Pick a card</b><button type="button" class="ghost" id="pickerRemove">Remove</button><button type="button" class="ghost" id="pickerDone">Done</button></div>
+          <div class="picker-grid" id="pickerGrid"></div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <form id="spot" class="card" autocomplete="off">
+          <h2>The spot</h2>
+          <label class="seg-label">Stakes</label>
+          <div class="seg" id="stakes">
+            <button type="button" data-v="low" class="on">Low stakes</button>
+            <button type="button" data-v="mid">Medium stakes</button>
+          </div>
+          <label class="seg-label">Street</label>
+          <div class="seg" id="street">
+            <button type="button" data-v="flop" class="on">Flop</button>
+            <button type="button" data-v="turn">Turn</button>
+            <button type="button" data-v="river">River</button>
+          </div>
+          <label>Pot before the bet <input type="number" id="pot" value="100" min="0" step="any" inputmode="decimal" /></label>
+          <label>Villain's bet <input type="number" id="bet" value="50" min="0" step="any" inputmode="decimal" /></label>
+          <div class="quick" id="betQuick">
+            <button type="button" data-f="0.33">⅓</button><button type="button" data-f="0.5">½</button>
+            <button type="button" data-f="0.75">¾</button><button type="button" data-f="1">Pot</button>
+          </div>
+          <label>Your effective stack <input type="number" id="stack" value="400" min="0" step="any" inputmode="decimal" /></label>
+
+          <div class="seg" id="mode">
+            <button type="button" data-v="outs" class="on">I have a draw</button>
+            <button type="button" data-v="equity">I know my equity</button>
+          </div>
+          <div id="outsBox">
+            <label>Outs <input type="number" id="outs" value="9" min="0" max="20" step="1" inputmode="numeric" /></label>
+            <div class="quick wrap" id="drawQuick">
+              <button type="button" data-o="9">Flush draw 9</button>
+              <button type="button" data-o="8">Open-ender 8</button>
+              <button type="button" data-o="4">Gutshot 4</button>
+              <button type="button" data-o="6">2 overs 6</button>
+              <button type="button" data-o="12">FD + gutter 12</button>
+              <button type="button" data-o="15">FD + OESD 15</button>
+            </div>
+          </div>
+          <div id="equityBox" hidden>
+            <label>Equity vs villain's range <span class="val" id="eqVal">40%</span>
+              <input type="range" id="equity" min="0" max="100" value="40" />
+            </label>
+          </div>
+        </form>
+
+        <div class="card result" id="result" aria-live="polite">
+          <div class="verdict" id="verdict"></div>
+          <p class="headline" id="headline"></p>
+          <div class="meter" aria-hidden="true">
+            <div class="bar"><div class="fill" id="eqFill"></div><div class="mark" id="reqMark"></div></div>
+            <div class="legend"><span>Your equity <b id="eqLbl"></b></span><span>Needed <b id="reqLbl"></b></span></div>
+          </div>
+          <div class="stats" id="stats"></div>
+          <h3>Why</h3>
+          <ol class="steps" id="steps"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRACTICE -->
+    <section id="practice" class="panel">
+      <div class="seg quiz-stakes" id="qStakes">
+        <button type="button" data-v="low" class="on">Low stakes</button>
+        <button type="button" data-v="mid">Medium stakes</button>
+      </div>
+      <div class="card quiz">
+        <div class="quiz-top">
+          <span class="topic" id="qTopic"></span>
+          <span class="score" id="qScore">0 / 0</span>
+        </div>
+        <div id="qTable"></div>
+        <p class="question" id="qText"></p>
+        <div class="answers" id="qAnswers"></div>
+        <div class="explain" id="qExplain" hidden></div>
+        <button class="primary" id="qNext" hidden>Next question →</button>
+      </div>
+      <details class="card topics">
+        <summary>Choose topics</summary>
+        <div id="topicList" class="topic-list"></div>
+      </details>
+      <p class="hint">Every question is generated on the fly, so there's always a fresh one.</p>
+    </section>
+
+    <!-- LEARN -->
+    <section id="learn" class="panel">
+      <article class="card learn">
+        <h2>Pot odds</h2>
+        <p>The share of the final pot you're putting in. If your chance of winning is higher than that, calling makes money.</p>
+        <code>needed equity = call ÷ (pot + bet + call)</code>
+        <p>Facing a half-pot bet you need 25%; a pot-sized bet, 33%.</p>
+
+        <h2>Outs &amp; the rule of 2 and 4</h2>
+        <p>An out is a card that turns your hand into the likely winner. Multiply outs by <b>2</b> for one card to come, or by <b>4</b> on the flop when you'll see both cards (you're all-in). Only use ×4 when there's no more betting; otherwise you pay again on the turn.</p>
+
+        <h2>How often does each hand win?</h2>
+        <p>Exact all-in win chances, worked out by checking every possible runout (ties count as half). The bar shows the first hand's equity.</p>
+        <h3>Preflop: all-in before the flop</h3>
+        <div class="matchups" id="mPreflop"></div>
+        <h3>Flop: all-in with two cards to come</h3>
+        <div class="matchups" id="mFlop"></div>
+
+        <h3>Multiway: all-in preflop against random hands</h3>
+        <p>How often a hand wins against 1 to 5 opponents holding random cards. Every extra player cuts your chances. Big pairs drop the most; suited and connected hands hold up relatively better because they make big hands.</p>
+        <div class="mw-wrap"><table class="mw" id="mMultiway"></table></div>
+
+        <h2>Multiway pots</h2>
+        <ul>
+          <li><b>Overcalls get a better price.</b> Each player who calls before you adds money to the pot, so the equity you need goes down.</li>
+          <li><b>…but you need a better hand.</b> Players who call before you show strength, and you have to beat <i>all</i> of them.</li>
+          <li><b>Bluffs and semi-bluffs need everyone to fold</b>, so they work far less often. Bluff much less multiway.</li>
+          <li><b>One pair loses value.</b> Top pair is often good heads-up and often beaten three-way.</li>
+          <li><b>Nut draws gain; non-nut draws lose.</b> More players means more money when you hit, but a better version of your draw is more likely to be out there.</li>
+        </ul>
+
+        <h2>Implied odds</h2>
+        <p>Money you expect to win <i>after</i> you hit. If direct odds fall short, ask: "Will villain pay me enough later?"</p>
+        <code>extra needed = call ÷ equity − (pot + bet + call)</code>
+        <p>Hidden draws and deep stacks have good implied odds. Obvious draws and short stacks don't.</p>
+
+        <h2>Think in ranges</h2>
+        <p>Modern, solver-era poker asks how your whole <i>range</i> does against villain's range on this board, not just whether your hand is good. A hand's value depends on where it ranks in your range, and solvers often play the same hand different ways at different frequencies. This app gives you the maths for one hand. Use the equity slider for your equity against villain's <i>range</i>, not their exact hand.</p>
+
+        <h2>Stack-to-pot ratio (SPR)</h2>
+        <code>SPR = effective stack ÷ pot (on the flop)</code>
+        <ul>
+          <li><b>Under 3:</b> strong one-pair hands are near the top of your range and usually commit. A big raise from a player who rarely bluffs can still be a fold.</li>
+          <li><b>3–6:</b> top pair is a middle-of-range hand. Two pair+ and strong draws build the pot; one pair mostly calls.</li>
+          <li><b>6+:</b> stacking off needs the top of your range. Draws and set-mining have their best implied odds.</li>
+        </ul>
+
+        <h2>Fold equity &amp; semi-bluffs</h2>
+        <p>When you raise with a draw you win two ways: villain folds now, or you hit. The fold equity you need is:</p>
+        <code>FE needed = −EV(called) ÷ (pot now − EV(called))</code>
+
+        <h2>MDF &amp; bluffing</h2>
+        <code>MDF = pot ÷ (pot + bet)</code>
+        <code>bluff break-even = bet ÷ (pot + bet)</code>
+        <p>The two mirror each other. A pot-sized bluff needs 50% folds, so in theory the defender has to continue with at least 50% of their range.</p>
+
+        <h2>Playing draws in the modern game</h2>
+        <ul>
+          <li><b>Strong draws (12+ outs)</b>, like a flush draw plus a straight draw, are often close to a coin flip even against top pair. Play them fast: bet, raise and check-raise. You win when they fold and still have lots of equity when called.</li>
+          <li><b>Medium draws (8–9 outs)</b>, like a flush draw or an open-ender, mostly call. Raise the best versions: nut draws and draws with overcards or backdoor draws.</li>
+          <li><b>Weak draws (≤6 outs)</b>, like gutshots, are cheap bluffs at most. Otherwise call only with the right price.</li>
+          <li><b>Count clean outs only.</b> Discount cards that pair the board (a full house risk) or that give villain a higher flush or straight.</li>
+          <li><b>Nut draws matter.</b> A low flush draw that gets there can still lose a big pot.</li>
+          <li><b>Position helps draws.</b> In position you get free cards and can bet when you hit. Out of position, check-raising is often better than check-calling.</li>
+        </ul>
+
+        <h2>Low-stakes adjustments</h2>
+        <ul>
+          <li><b>Value bet thinner and bigger.</b> Players call too much, so your good hands earn more than theory predicts.</li>
+          <li><b>Bluff less</b>, especially on the river against players who don't fold.</li>
+          <li><b>Fold more to big aggression.</b> River raises, check-raises and overbets are usually strong hands. Folding more than MDF is correct.</li>
+          <li><b>Draws:</b> implied odds are better (they pay off when you hit) but fold equity is worse. Call more and semi-bluff less, except with strong draws when stacks are short.</li>
+          <li><b>Exploit, don't balance.</b> You don't need to be unpredictable against players who aren't paying attention. Play your strong hands for value.</li>
+        </ul>
+
+        <h2>Medium-stakes adjustments</h2>
+        <ul>
+          <li>Regulars play closer to solver strategy, so <b>stay closer to MDF</b> and don't over-fold, or they'll bluff you off hands.</li>
+          <li><b>Semi-bluff more.</b> Regulars can fold, so raising with draws earns more.</li>
+          <li><b>Balance your raises.</b> If you only raise with strong hands, regulars will notice and fold.</li>
+          <li>Many regulars still under-bluff big river raises, so folding a bit more there is still fine.</li>
+        </ul>
+
+        <h2>Theory vs real opponents</h2>
+        <p>MDF and "balanced" bluffing ratios assume villain plays like a solver. Most players don't. They under-bluff big bets, river raises and check-raises especially. Against them, folding more than MDF is correct, and a hand that's "too good to fold" in theory can be an easy fold in practice. Start from the theory baseline, then adjust to the player in front of you.</p>
+
+        <p class="small">These are models. Real decisions also depend on reads, position and ranges. The maths is the base you build on.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer>Pot Logic · plain HTML, CSS &amp; JS · for learning, not financial advice</footer>
+
+  <script src="poker-eval.js"></script>
+  <script src="poker-math.js"></script>
+  <script src="matchups.js"></script>
+  <script src="quiz.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
