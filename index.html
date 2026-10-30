@@ -74,13 +74,13 @@
             <button type="button" data-v="turn">Turn</button>
             <button type="button" data-v="river">River</button>
           </div>
-          <label>Pot before the bet <input type="number" id="pot" value="100" min="0" step="any" inputmode="decimal" /></label>
-          <label>Villain's bet <input type="number" id="bet" value="50" min="0" step="any" inputmode="decimal" /></label>
+          <label>Pot before the bet (bb) <input type="number" id="pot" value="10" min="0" step="0.5" inputmode="decimal" /></label>
+          <label>Villain's bet (bb) <span class="val" id="betPct"></span><input type="number" id="bet" value="5" min="0" step="any" inputmode="decimal" /></label>
           <div class="quick" id="betQuick">
-            <button type="button" data-f="0.33">⅓</button><button type="button" data-f="0.5">½</button>
-            <button type="button" data-f="0.75">¾</button><button type="button" data-f="1">Pot</button>
+            <button type="button" data-f="0.33">33%</button><button type="button" data-f="0.5">50%</button>
+            <button type="button" data-f="0.75">75%</button><button type="button" data-f="1">100%</button><button type="button" data-f="1.5">150%</button>
           </div>
-          <label>Your effective stack <input type="number" id="stack" value="400" min="0" step="any" inputmode="decimal" /></label>
+          <label>Your effective stack (bb) <input type="number" id="stack" value="100" min="0" step="any" inputmode="decimal" /></label>
 
           <div class="seg" id="mode">
             <button type="button" data-v="outs" class="on">I have a draw</button>
@@ -149,7 +149,7 @@
         <h2>Pot odds</h2>
         <p>The share of the final pot you're putting in. If your chance of winning is higher than that, calling makes money.</p>
         <code>needed equity = call ÷ (pot + bet + call)</code>
-        <p>Facing a half-pot bet you need 25%; a pot-sized bet, 33%.</p>
+        <p>Facing a 50% pot bet you need 25%; a 100% pot bet, 33%; a 150% overbet, 37.5%. All amounts in this app are in big blinds (bb).</p>
 
         <h2>Outs &amp; the rule of 2 and 4</h2>
         <p>An out is a card that turns your hand into the likely winner. Multiply outs by <b>2</b> for one card to come, or by <b>4</b> on the flop when you'll see both cards (you're all-in). Only use ×4 when there's no more betting; otherwise you pay again on the turn.</p>

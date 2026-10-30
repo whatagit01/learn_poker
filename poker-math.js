@@ -43,12 +43,12 @@
     return pot > 0 ? stack / pot : Infinity;
   }
 
-  /** EV of calling (chips, relative to folding), ignoring future betting. */
+  /** EV of calling (bb, relative to folding), ignoring future betting. */
   function callEV(equity, pot, bet, call) {
     return equity * (pot + bet) - (1 - equity) * call;
   }
 
-  /** Extra chips you must win on later streets for a call to break even. */
+  /** Extra bb you must win on later streets for a call to break even. */
   function impliedOddsNeeded(equity, pot, bet, call) {
     if (equity <= 0) return Infinity;
     return Math.max(0, call / equity - (pot + bet + call));
@@ -87,7 +87,7 @@
   }
 
   /**
-   * The decision engine. All amounts in chips (or big blinds).
+   * The decision engine. All amounts in big blinds (bb).
    * input: { pot, bet, stack, street, mode: 'outs'|'equity', outs, equity (0-1) }
    *   pot   = pot before villain's bet
    *   bet   = villain's bet you're facing
@@ -129,9 +129,9 @@
     const ratio = call > 0 ? (pot + bet) / call : Infinity;
 
     const steps = [];
-    steps.push({ title: "Pot odds", text: `You call ${fmt(call)} to win ${fmt(pot + bet)}${callers ? ` (including ${callers} player${callers > 1 ? "s" : ""} who already called: better odds for you)` : ""} (odds of ${ratio === Infinity ? "∞" : ratio.toFixed(1)}:1). You need ${pct(required)} equity to break even.` });
+    steps.push({ title: "Pot odds", text: `Villain bets ${bb(bet)} (${betPct(bet, potStart)}). You call ${bb(call)} to win ${bb(pot + bet)}${callers ? ` (including ${callers} player${callers > 1 ? "s" : ""} who already called: better odds for you)` : ""} (odds of ${ratio === Infinity ? "∞" : ratio.toFixed(1)}:1). You need ${pct(required)} equity to break even.` });
     steps.push({ title: "Your equity", text: `${pct(equity)} — ${equityNote}.` });
-    steps.push({ title: "EV of calling", text: `${pct(equity)} × ${fmt(pot + bet)} − ${pct(1 - equity)} × ${fmt(call)} = ${signed(ev)} chips per call.` });
+    steps.push({ title: "EV of calling", text: `${pct(equity)} × ${bb(pot + bet)} − ${pct(1 - equity)} × ${bb(call)} = ${signedBB(ev)} per call.` });
     steps.push({ title: "Stack-to-pot ratio", text: `SPR is ${sprNow === Infinity ? "∞" : sprNow.toFixed(2)} (${band.label}). After calling it would be ${sprAfter === Infinity ? "∞" : sprAfter.toFixed(2)}. ${band.text}` });
 
     const low = (input.stakes || "low") !== "mid";
@@ -181,22 +181,22 @@
       const realisticImplied = street !== "river" && !allInCall && implied <= remaining * T.impliedShare;
       steps.push({ title: "Implied odds", text: allInCall || street === "river"
         ? "No implied odds — there's no more betting after this call."
-        : `To break even you need to win an extra ${fmt(implied)} on later streets (${remaining > 0 ? pct(implied / remaining) : "∞"} of your remaining ${fmt(remaining)} stack).` });
+        : `To break even you need to win an extra ${bb(implied)} on later streets (${remaining > 0 ? pct(implied / remaining) : "∞"} of your remaining ${bb(remaining)} stack).` });
 
       if (realisticImplied) {
         action = "CALL (IMPLIED ODDS)"; tone = "warn";
-        headline = `Direct odds say fold (${pct(equity)} < ${pct(required)}), but you only need to win ${fmt(implied)} more when you hit.` +
+        headline = `Direct odds say fold (${pct(equity)} < ${pct(required)}), but you only need to win ${bb(implied)} more when you hit.` +
           (low ? " Low-stakes players often pay off big when you hit, especially with disguised draws, so this is usually a call."
                : " Medium-stakes regulars pay off less, so only count on it if your draw is well disguised (not an obvious flush draw).");
       } else if (!multiway && stack > call && shove.foldEquityNeeded <= T.shoveFE && equity >= 0.15) {
-        steps.push({ title: "Semi-bluff shove", text: `If you shove ${fmt(stack)}: when called you win ${pct(equity)} of a ${fmt(shove.finalPot)} pot (EV ${signed(shove.evWhenCalled)}). Villain needs to fold ${pct(shove.foldEquityNeeded)} of the time to make the shove break even.` });
+        steps.push({ title: "Semi-bluff shove", text: `If you shove ${bb(stack)}: when called you win ${pct(equity)} of a ${bb(shove.finalPot)} pot (EV ${signedBB(shove.evWhenCalled)}). Villain needs to fold ${pct(shove.foldEquityNeeded)} of the time to make the shove break even.` });
         action = "SHOVE (SEMI-BLUFF) OR FOLD"; tone = "warn";
         headline = `Calling loses money, but shoving works if villain folds more than ${pct(shove.foldEquityNeeded)} of the time.` +
           (low ? " Low-stakes players fold too rarely, so only shove against tight players who can fold. Against calling stations, fold."
                : " Medium-stakes regulars can fold, so this is a real option. Shove when you'd fold too often otherwise.");
       } else {
         action = "FOLD"; tone = "bad";
-        headline = `You need ${pct(required)} equity but have ${pct(equity)}. Calling loses ${fmt(-ev)} on average${street !== "river" && !allInCall ? `, and you'd need to win an unrealistic ${fmt(implied)} extra later to make up for it` : ""}.`;
+        headline = `You need ${pct(required)} equity but have ${pct(equity)}. Calling loses ${bb(-ev)} on average${street !== "river" && !allInCall ? `, and you'd need to win an unrealistic ${bb(implied)} extra later to make up for it` : ""}.`;
       }
     }
 
@@ -209,7 +209,7 @@
   /** Advice for pots with more than one opponent. */
   function multiwayAdvice(opponents, callers, isDraw, low) {
     let t = `With ${opponents} opponents, someone is much more likely to have a strong hand, and a bet has to get through all of them. Bluffs and semi-bluffs need everyone to fold, so they work far less often (the shove maths assumes heads-up and is switched off). One-pair hands lose a lot of value.`;
-    if (isDraw) t += " Draws to the nuts gain: more players means more chips when you hit. Non-nut draws (low flushes, the low end of a straight) lose value, because someone may hold a better version.";
+    if (isDraw) t += " Draws to the nuts gain: more players means more money when you hit. Non-nut draws (low flushes, the low end of a straight) lose value, because someone may hold a better version.";
     else t += " Your equity estimate should be against the best of several ranges, which is lower than against any one of them.";
     if (callers) t += ` ${callers} player${callers > 1 ? "s have" : " has"} already called: that improves your price but also shows strength, so their ranges are stronger than average.`;
     t += low
@@ -237,10 +237,14 @@
   }
 
   function pct(x) { return (x * 100).toFixed(1) + "%"; }
+  function bb(x) { return fmt(x) + "\u00a0bb"; } // non-breaking space keeps "9 bb" together
+  function signedBB(x) { return signed(x) + " bb"; }
+  /** Bet size as a percentage of the pot, e.g. "50% pot". */
+  function betPct(bet, pot) { return pot > 0 ? Math.round((bet / pot) * 100) + "%\u00a0pot" : "—"; }
   function fmt(x) { return x === Infinity ? "∞" : (Math.round(x * 100) / 100).toLocaleString("en-GB"); }
   function signed(x) { return (x >= 0 ? "+" : "−") + fmt(Math.abs(x)); }
 
-  const api = { choose, outsEquity, ruleOf2And4, potOdds, spr, callEV, impliedOddsNeeded, mdf, bluffBreakeven, shoveAnalysis, sprBand, drawAdvice, multiwayAdvice, analyse, pct, fmt, signed };
+  const api = { choose, outsEquity, ruleOf2And4, potOdds, spr, callEV, impliedOddsNeeded, mdf, bluffBreakeven, shoveAnalysis, sprBand, drawAdvice, multiwayAdvice, analyse, pct, fmt, signed, bb, signedBB, betPct };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.PokerMath = api;
 })(typeof window !== "undefined" ? window : this);

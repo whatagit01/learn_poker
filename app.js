@@ -30,7 +30,7 @@
 
   $("betQuick").addEventListener("click", (e) => {
     const f = e.target.dataset.f; if (!f) return;
-    $("bet").value = Math.round(+$("pot").value * f * 100) / 100; sync();
+    $("bet").value = Math.round(+$("pot").value * f * 2) / 2; sync();
   });
   $("drawQuick").addEventListener("click", (e) => {
     const o = e.target.dataset.o; if (!o) return;
@@ -67,19 +67,19 @@
     const k = table.opponents;
     const angles = k === 1 ? [270] : Array.from({ length: k }, (_, i) => 200 + (140 * i) / (k - 1));
     $("seats").innerHTML = angles.map((a, i) => {
-      const x = 50 + 46 * Math.cos((a * Math.PI) / 180), y = 50 + 44 * Math.sin((a * Math.PI) / 180);
+      const x = 50 + 39 * Math.cos((a * Math.PI) / 180), y = 50 + 44 * Math.sin((a * Math.PI) / 180);
       let chip;
       if (n.bet <= 0) chip = `<span class="act">Checks</span>`;
-      else if (i === 0) chip = `<span class="chipstack bet">Bets ${PM.fmt(n.bet)}</span>`;
-      else if (i <= table.callers) chip = `<span class="chipstack">Calls ${PM.fmt(n.bet)}</span>`;
+      else if (i === 0) chip = `<span class="chipstack bet">Bets ${PM.bb(n.bet)}<br>${PM.betPct(n.bet, n.potStart)}</span>`;
+      else if (i <= table.callers) chip = `<span class="chipstack">Calls ${PM.bb(n.bet)}</span>`;
       else chip = `<span class="act">To act</span>`;
       const shown = play.revealed && play.villains[i];
       const cards = shown ? play.villains[i].map((c) => faceHTML(c, "sm")).join("") : `<span class="tc back"></span><span class="tc back"></span>`;
       if (play.active && play.awaiting === false && play.revealed) chip = play.villains[i] ? `<span class="act">${play.villainNames[i] || ""}</span>` : "";
       return `<div class="seat" style="left:${x}%;top:${y}%"><div class="backs">${cards}</div><div class="seat-name">${i === 0 ? "Villain" : "Opp " + (i + 1)}</div>${chip}</div>`;
     }).join("");
-    $("tPot").textContent = PM.fmt(n.potStart);
-    $("tStack").textContent = PM.fmt(n.stack);
+    $("tPot").textContent = PM.bb(n.potStart);
+    $("tStack").textContent = PM.bb(n.stack);
     $("oppN").textContent = table.opponents;
     $("callersN").textContent = table.callers;
   }
@@ -158,7 +158,7 @@
   const STREETS = ["flop", "turn", "river"];
   const rint = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
   const pickOne = (arr) => arr[rint(0, arr.length - 1)];
-  const round5 = (x) => Math.max(5, Math.round(x / 5) * 5);
+  const roundHalf = (x) => Math.max(0.5, Math.round(x * 2) / 2);
   const setVal = (id, v) => { $(id).value = v; };
   function setMode(m) {
     state.mode = m;
@@ -185,9 +185,9 @@
     slots.b3 = slots.b4 = null;
     table.opponents = opp;
     table.callers = opp > 1 ? rint(0, opp - 1) : 0;
-    const pot = rint(3, 20) * 10;
+    const pot = rint(6, 60) / 2; // 3–30 bb
     setVal("pot", pot);
-    setVal("stack", pot * pickOne([2, 3, 5, 8, 12]));
+    setVal("stack", Math.round(pot * pickOne([2, 3, 5, 8, 12])));
     $("dealBtn").hidden = true;
     $("playPanel").hidden = false;
     document.querySelector(".table-card").classList.add("playing");
@@ -197,7 +197,7 @@
   function startDecision() {
     const street = STREETS[play.streetIdx];
     const pot = +$("pot").value, stack = +$("stack").value;
-    const bet = Math.min(stack, round5(pot * pickOne([0.33, 0.5, 0.66, 0.75, 1])));
+    const bet = Math.min(stack, roundHalf(pot * pickOne([0.33, 0.5, 0.66, 0.75, 1, 1.5])));
     setVal("bet", bet);
     drawSlots();
     setStreet(street);
@@ -212,15 +212,15 @@
     sync(); updateCardInfo();
     const others = table.callers ? ` ${table.callers} other player${table.callers > 1 ? "s" : ""} call${table.callers > 1 ? "" : "s"}.` : "";
     $("playStreet").textContent = street[0].toUpperCase() + street.slice(1);
-    $("playMsg").innerHTML = `Villain bets <b>${PM.fmt(bet)}</b> into <b>${PM.fmt(pot)}</b>.${others} You have <b>${PM.fmt(stack)}</b> behind. What do you do?` +
+    $("playMsg").innerHTML = `Villain bets <b>${PM.bb(bet)}</b> (${PM.betPct(bet, pot)}) into <b>${PM.bb(pot)}</b>.${others} You have <b>${PM.bb(stack)}</b> behind. What do you do?` +
       (state.mode === "equity" ? `<br><span class="muted">The equity slider is set to your win % against a typical betting range (hands with a pair or better, or a strong draw). Adjust it if you have a read on the player.</span>` : `<br><span class="muted">You have no made hand, so this is played as a draw using your outs.</span>`);
     $("playFeedback").hidden = true;
     const allIn = bet >= stack;
     const raiseTo = Math.min(stack, bet * 3);
     actions([
       ["Fold", "fold", "bad"],
-      [allIn ? `Call all-in ${PM.fmt(bet)}` : `Call ${PM.fmt(bet)}`, "call", "good"],
-      ...(allIn ? [] : [[raiseTo >= stack ? `Shove ${PM.fmt(stack)}` : `Raise to ${PM.fmt(raiseTo)}`, "raise", "gold"]]),
+      [allIn ? `Call all-in ${PM.bb(bet)}` : `Call ${PM.bb(bet)}`, "call", "good"],
+      ...(allIn ? [] : [[raiseTo >= stack ? `Shove ${PM.bb(stack)}` : `Raise to ${PM.bb(raiseTo)}`, "raise", "gold"]]),
     ]);
     showScore();
   }
@@ -303,7 +303,7 @@
     let msg = `Board: <b>${cardsTxt(board)}</b><br>You: <b>${cardsTxt(play.hero)}</b>, ${heroName}<br>` +
       play.villains.map((v, i) => `${i === 0 ? "Villain" : "Opp " + (i + 1)}: <b>${cardsTxt(v)}</b>, ${play.villainNames[i]}`).join("<br>") + "<br>";
     if (play.folded) msg += heroWins ? (tie ? "You would have split the pot." : "😬 You would have won this one. Judge the fold by the maths, not by one result.") : "👍 You would have lost this one.";
-    else msg += tie ? `🤝 Split pot (${PM.fmt(pot)}).` : heroWins ? `🏆 You win the ${PM.fmt(pot)} pot!` : `You lose the ${PM.fmt(pot)} pot.`;
+    else msg += tie ? `🤝 Split pot (${PM.bb(pot)}).` : heroWins ? `🏆 You win the ${PM.bb(pot)} pot!` : `You lose the ${PM.bb(pot)} pot.`;
     $("playStreet").textContent = "Showdown";
     $("playMsg").innerHTML = msg;
     actions([["Deal a new hand", "new", "gold"], ["Stop", "exit"]]);
@@ -343,6 +343,7 @@
     $("outsBox").hidden = state.mode !== "outs";
     $("equityBox").hidden = state.mode !== "equity";
     $("eqVal").textContent = $("equity").value + "%";
+    $("betPct").textContent = PM.betPct(+$("bet").value, +$("pot").value);
     render();
   }
 
@@ -369,10 +370,11 @@
     const fmtR = (x) => (x === Infinity ? "∞" : x.toFixed(2));
     const stats = [
       ["Pot odds", n.ratio === Infinity ? "—" : n.ratio.toFixed(1) + " : 1"],
-      ["Call EV", PM.signed(n.ev)],
+      ["Bet size", PM.betPct(n.bet, n.potStart)],
+      ["Call EV", PM.signedBB(n.ev)],
       ["SPR", fmtR(n.sprNow)],
       ["SPR after call", fmtR(n.sprAfter)],
-      ["Implied odds needed", n.implied === 0 ? "none" : PM.fmt(n.implied)],
+      ["Implied odds needed", n.implied === 0 ? "none" : PM.bb(n.implied)],
       ["Shove needs folds", n.multiway ? "n/a multiway" : PM.pct(n.shove.foldEquityNeeded)],
       ["MDF (theory)", PM.pct(n.mdf)],
       ["Bluff break-even", PM.pct(n.bluffBE)],
@@ -422,13 +424,13 @@
     const opps = (t.villains || []).map((v, i) => {
       const cards = v && t.showVillain ? v.map(f).join("") : `<span class="tc back"></span><span class="tc back"></span>`;
       let chip = "";
-      if (t.bet) chip = i === 0 ? `<span class="chipstack bet">Bets ${t.bet}</span>` : i <= (t.callers || 0) ? `<span class="chipstack">Calls ${t.bet}</span>` : `<span class="act">To act</span>`;
+      if (t.bet) chip = i === 0 ? `<span class="chipstack bet">Bets ${PM.bb(t.bet)}${t.pot ? " · " + PM.betPct(t.bet, t.pot).replace("\u00a0pot", "") : ""}</span>` : i <= (t.callers || 0) ? `<span class="chipstack">Calls ${PM.bb(t.bet)}</span>` : `<span class="act">To act</span>`;
       return `<div class="mini-seat"><div class="backs">${cards}</div>${chip}</div>`;
     }).join("");
     const board = (t.board || []).length ? t.board.map(f).join("") : t.hero ? `<span class="act">Preflop</span>` : "";
     return `<div class="mini-felt">
       ${opps ? `<div class="mini-opps">${opps}</div>` : ""}
-      <div class="mini-board">${board}${t.pot ? `<span class="pot-pill">Pot <b>${t.pot}</b></span>` : ""}</div>
+      <div class="mini-board">${board}${t.pot ? `<span class="pot-pill">Pot <b>${PM.bb(t.pot)}</b></span>` : ""}</div>
       ${t.hero ? `<div class="mini-hero">${t.hero.map(f).join("")}<span class="seat-label">You</span></div>` : `<div class="mini-hero"><span class="seat-label">You</span></div>`}
     </div>`;
   }

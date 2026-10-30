@@ -240,3 +240,4 @@ footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 12
 .result.locked > :not(.lock-msg) { display: none; }
 .tc.mine { box-shadow: 0 0 0 3px var(--gold), 0 2px 4px #0006; }
 .table-card.playing .table-controls { opacity: 0.4; pointer-events: none; }
+.seat .chipstack { white-space: normal; text-align: center; line-height: 1.25; max-width: 96px; padding: 1px 7px; }

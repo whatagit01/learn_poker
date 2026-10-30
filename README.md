@@ -1,5 +1,7 @@
 # Pot Logic ♠️
 
+All amounts are in **big blinds (bb)** and bet sizes are shown as a **% of the pot**.
+
 A small web app that does the poker maths for you and then tells you the **next best action** and why.
 
 ## Features
