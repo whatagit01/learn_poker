@@ -44,6 +44,13 @@
           <div class="stepper"><span>Already called the bet</span><button type="button" data-step="callers" data-d="-1">−</button><b id="callersN">0</b><button type="button" data-step="callers" data-d="1">+</button></div>
           <button type="button" class="ghost" id="clearCards">Clear cards</button>
         </div>
+        <div class="play-bar"><button type="button" class="primary" id="dealBtn">Deal</button></div>
+        <div class="play" id="playPanel" hidden>
+          <div class="play-head"><span id="playStreet"></span><span id="playScore"></span></div>
+          <div class="play-msg" id="playMsg"></div>
+          <div class="play-feedback" id="playFeedback" hidden></div>
+          <div class="play-actions" id="playActions"></div>
+        </div>
       </div>
 
       <div class="picker" id="picker" hidden>
@@ -98,6 +105,7 @@
         </form>
 
         <div class="card result" id="result" aria-live="polite">
+          <div class="lock-msg">🔒 Make your decision on the table first, then the maths appears here.</div>
           <div class="verdict" id="verdict"></div>
           <p class="headline" id="headline"></p>
           <div class="meter" aria-hidden="true">

@@ -55,6 +55,13 @@ assert.strictEqual(PE.describe(C(["Q♠", "Q♦"]), C(["J♠", "6♦", "2♣"]))
 assert.ok(PE.evaluate(C(["A♠", "2♦", "3♣", "4♥", "5♠"])) > PE.evaluate(C(["A♠", "A♦", "A♣", "K♥", "Q♠"]))); // wheel beats trips
 near(PE.equityVsRandom(C(["A♠", "A♥"]), [], 1, 40000), 0.853, 0.012);                    // AA vs 1 random ≈ 85%
 
+assert.ok(PE.noMadeHand(C(["7♥", "6♥"]), C(["K♥", "9♥", "2♣"])));
+assert.ok(!PE.noMadeHand(C(["Q♣", "A♥"]), C(["3♥", "3♣", "Q♠"])));          // two pair with the board is a made hand
+const br = PE.equityVsBettingRange(C(["A♠", "K♦"]), C(["K♠", "7♦", "2♣"]), 1, 3000);
+assert.ok(br < PE.equityVsRandom(C(["A♠", "K♦"]), C(["K♠", "7♦", "2♣"]), 1, 3000)); // betting range is tougher than random
+// Exact equity vs known hands matches enumeration
+near(PE.equityVsKnown(C(["K♠", "Q♣"]), [C(["7♥", "6♥"])], C(["K♥", "9♥", "2♣"])), 0.6111, 0.001);
+
 // Multiway: callers improve the price and switch off the heads-up shove maths
 const hu = PM.analyse({ pot: 100, bet: 50, stack: 1000, street: "flop", mode: "outs", outs: 9 });
 const mw = PM.analyse({ pot: 100, bet: 50, stack: 1000, street: "flop", mode: "outs", outs: 9, opponents: 3, callers: 2 });

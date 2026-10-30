@@ -158,6 +158,70 @@
     return share / iters;
   }
 
+  /**
+   * Equity against a simple "betting range": opponents' hands are random but must connect with the board,
+   * meaning a pair or better using a hole card, or a draw with 8+ outs. Preflop, falls back to random hands.
+   */
+  function equityVsBettingRange(hole, board, nOpp, iters) {
+    if (board.length < 3) return equityVsRandom(hole, board, nOpp, iters);
+    const boardCat = category(evaluate(board));
+    const connects = (h) => category(evaluate([...h, ...board])) > boardCat || (board.length < 5 && draws(h, board).outs >= 8);
+    const used = new Set([...hole, ...board]);
+    const deck = []; for (let c = 0; c < 52; c++) if (!used.has(c)) deck.push(c);
+    const need = 5 - board.length;
+    let share = 0, n = 0;
+    for (let it = 0; it < iters; it++) {
+      const taken = new Set(), opps = [];
+      for (let o = 0; o < nOpp; o++) {
+        let h, tries = 0;
+        do {
+          const a = deck[Math.floor(rng() * deck.length)], b = deck[Math.floor(rng() * deck.length)];
+          h = a !== b && !taken.has(a) && !taken.has(b) ? [a, b] : null;
+        } while ((!h || !connects(h)) && ++tries < 60);
+        if (!h) continue;
+        h.forEach((c) => taken.add(c)); opps.push(h);
+      }
+      const rest = deck.filter((c) => !taken.has(c));
+      const full = board.slice();
+      for (let i = 0; i < need; i++) { const j = i + Math.floor(rng() * (rest.length - i)); [rest[i], rest[j]] = [rest[j], rest[i]]; full.push(rest[i]); }
+      const hs = evaluate([...hole, ...full]);
+      let best = hs, tied = 1, heroBest = true;
+      for (const o of opps) { const s = evaluate([...o, ...full]); if (s > best) { best = s; heroBest = false; tied = 1; } else if (s === best) tied++; }
+      if (heroBest) share += 1 / tied;
+      n++;
+    }
+    return share / n;
+  }
+
+  /** True when your hole cards make no pair or better beyond what the board already shows. */
+  function noMadeHand(hole, board) {
+    return category(evaluate([...hole, ...board])) <= category(evaluate(board));
+  }
+
+  /** Exact equity of `hole` against known opponent hands, enumerating every remaining board. Ties split. */
+  function equityVsKnown(hole, opps, board) {
+    const used = new Set([...hole, ...opps.flat(), ...board]);
+    const deck = []; for (let c = 0; c < 52; c++) if (!used.has(c)) deck.push(c);
+    const need = 5 - board.length;
+    let share = 0, n = 0;
+    const run = new Array(need);
+    (function rec(start, depth) {
+      if (depth === need) {
+        const full = [...board, ...run];
+        const h = evaluate([...hole, ...full]);
+        let best = h, tied = 1, heroBest = true;
+        for (const o of opps) {
+          const s = evaluate([...o, ...full]);
+          if (s > best) { best = s; heroBest = false; tied = 1; } else if (s === best) tied++;
+        }
+        if (heroBest) share += 1 / tied;
+        n++; return;
+      }
+      for (let i = start; i < deck.length; i++) { run[depth] = deck[i]; rec(i + 1, depth + 1); }
+    })(0, 0);
+    return share / n;
+  }
+
   /** Exact heads-up equity by enumeration of every runout. */
   function equityExact(h1, h2, board) {
     const used = new Set([...h1, ...h2, ...board]);
@@ -177,7 +241,7 @@
     return { win: w1 / n, lose: w2 / n, tie: tie / n, equity: (w1 + tie / 2) / n };
   }
 
-  const api = { RANKS, SUITS, CATEGORIES, parse, toStr, rankOf, suitOf, evaluate, category, describe, draws, equityVsRandom, equityExact };
+  const api = { RANKS, SUITS, CATEGORIES, parse, toStr, rankOf, suitOf, evaluate, category, describe, draws, noMadeHand, equityVsRandom, equityVsBettingRange, equityVsKnown, equityExact };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.PokerEval = api;
 })(typeof window !== "undefined" ? window : this);
