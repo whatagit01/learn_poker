@@ -238,3 +238,5 @@ footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 12
 .result .lock-msg { display: none; }
 .result.locked .lock-msg { display: block; text-align: center; color: var(--muted); padding: 30px 10px; }
 .result.locked > :not(.lock-msg) { display: none; }
+.tc.mine { box-shadow: 0 0 0 3px var(--gold), 0 2px 4px #0006; }
+.table-card.playing .table-controls { opacity: 0.4; pointer-events: none; }

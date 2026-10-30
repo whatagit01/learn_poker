@@ -58,9 +58,10 @@
   const boardCards = () => ["b0", "b1", "b2", "b3", "b4"].map((k) => slots[k]).filter((c) => c != null);
 
   function drawSlots() {
-    $("hole").innerHTML = ["h0", "h1"].map((k) => `<button type="button" class="slot" data-slot="${k}">${faceHTML(slots[k])}</button>`).join("");
+    const mine = (k) => (play.active && play.userPicks && play.userPicks[k] != null ? "mine" : "");
+    $("hole").innerHTML = ["h0", "h1"].map((k) => `<button type="button" class="slot" data-slot="${k}">${faceHTML(slots[k], mine(k))}</button>`).join("");
     $("board").innerHTML = ["b0", "b1", "b2", "b3", "b4"].map((k, i) =>
-      `<button type="button" class="slot ${i >= 3 ? "later" : ""}" data-slot="${k}" aria-label="${i < 3 ? "Flop" : i === 3 ? "Turn" : "River"} card">${faceHTML(slots[k])}</button>`).join("");
+      `<button type="button" class="slot ${i >= 3 ? "later" : ""}" data-slot="${k}" aria-label="${i < 3 ? "Flop" : i === 3 ? "Turn" : "River"} card">${faceHTML(slots[k], mine(k))}</button>`).join("");
   }
   function drawSeats(n) {
     const k = table.opponents;
@@ -95,7 +96,7 @@
     if (nb >= 3) setStreet(nb === 3 ? "flop" : nb === 4 ? "turn" : "river");
     if (hole.length < 2) {
       table.cardInfo = null;
-      $("tableInfo").textContent = "Tap the card spaces to add your hole cards and the board (optional).";
+      $("tableInfo").textContent = "Tap the card spaces to choose any cards you like, or just press Deal. Cards you choose are kept and the rest are dealt at random.";
       return;
     }
     const desc = PE.describe(hole, board);
@@ -141,8 +142,10 @@
   $("pickerRemove").addEventListener("click", () => { slots[pickingSlot] = null; drawSlots(); updateCardInfo(); render(); closePicker(); });
   $("pickerDone").addEventListener("click", closePicker);
   $("picker").addEventListener("click", (e) => { if (e.target === $("picker")) closePicker(); });
-  $("clearCards").addEventListener("click", () => { ORDER.forEach((k) => (slots[k] = null)); drawSlots(); updateCardInfo(); render(); });
+  $("clearCards").addEventListener("click", () => {
+    if (play.active) return; ORDER.forEach((k) => (slots[k] = null)); drawSlots(); updateCardInfo(); render(); });
   document.querySelectorAll("[data-step]").forEach((b) => b.addEventListener("click", () => {
+    if (play.active) return;
     const d = +b.dataset.d;
     if (b.dataset.step === "opp") table.opponents = Math.min(5, Math.max(1, table.opponents + d));
     else table.callers += d;
@@ -164,12 +167,17 @@
   const cardsTxt = (cs) => cs.map(PE.toStr).join(" ");
 
   function dealHand() {
-    const deck = Array.from({ length: 52 }, (_, i) => i);
-    for (let i = 51; i > 0; i--) { const j = rint(0, i); [deck[i], deck[j]] = [deck[j], deck[i]]; }
-    const opp = pickOne([1, 1, 1, 2, 2, 3]);
-    play.hero = deck.slice(0, 2);
-    play.villains = Array.from({ length: opp }, (_, i) => deck.slice(2 + i * 2, 4 + i * 2));
-    play.board = deck.slice(2 + opp * 2, 7 + opp * 2);
+    // First deal: remember what the user set up, so "Deal a new hand" and "Stop" can reuse it.
+    if (!play.active) { play.userPicks = { ...slots }; play.userOpp = table.opponents; }
+    const picks = play.userPicks;
+    const picked = new Set(Object.values(picks).filter((c) => c != null));
+    const deck = Array.from({ length: 52 }, (_, i) => i).filter((c) => !picked.has(c));
+    for (let i = deck.length - 1; i > 0; i--) { const j = rint(0, i); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+    const next = () => deck.pop();
+    const opp = play.userOpp > 1 ? play.userOpp : pickOne([1, 1, 1, 2, 2, 3]);
+    play.hero = [picks.h0 ?? next(), picks.h1 ?? next()];
+    play.board = ["b0", "b1", "b2", "b3", "b4"].map((k) => picks[k] ?? next());
+    play.villains = Array.from({ length: opp }, () => [next(), next()]);
     play.villainNames = [];
     play.active = true; play.revealed = false; play.streetIdx = 0; play.folded = false;
     slots.h0 = play.hero[0]; slots.h1 = play.hero[1];
@@ -182,6 +190,7 @@
     setVal("stack", pot * pickOne([2, 3, 5, 8, 12]));
     $("dealBtn").hidden = true;
     $("playPanel").hidden = false;
+    document.querySelector(".table-card").classList.add("playing");
     startDecision();
   }
 
@@ -303,7 +312,11 @@
 
   function exitPlay() {
     play.active = false; play.awaiting = false; play.revealed = false;
+    Object.assign(slots, play.userPicks || {});
+    table.opponents = play.userOpp || 1; table.callers = 0;
+    drawSlots(); updateCardInfo();
     $("playPanel").hidden = true; $("dealBtn").hidden = false;
+    document.querySelector(".table-card").classList.remove("playing");
     sync();
   }
 

@@ -4,7 +4,7 @@ A small web app that does the poker maths for you and then tells you the **next 
 
 ## Features
 
-**Analyse:** a visual poker table at the top. Tap to add your hole cards and the board; it names your hand, counts your draw outs, shows your win % against 1–5 random hands, and seats the opponents (who bet, who called, who's still to act) for **multiway** spots. **Deal a random hand and play it out:** you decide to fold, call or raise on the flop, turn and river *before* the maths is shown, then see whether you matched it, your real equity against the opponents' actual cards, and the showdown. Or enter the pot, villain's bet, your stack and either your outs or your equity. You get:
+**Analyse:** a visual poker table at the top. Tap to add your hole cards and the board; it names your hand, counts your draw outs, shows your win % against 1–5 random hands, and seats the opponents (who bet, who called, who's still to act) for **multiway** spots. **Deal:** pick any cards you want (hole cards, flop, turn, river) and the opponent count, or none at all; Deal keeps your choices and randomises everything else. Then you decide to fold, call or raise on the flop, turn and river *before* the maths is shown, then see whether you matched it, your real equity against the opponents' actual cards, and the showdown. Or enter the pot, villain's bet, your stack and either your outs or your equity. You get:
 - **Verdict:** Call / Fold / Raise / Shove / Call on implied odds / Semi-bluff shove
 - Pot odds and required equity, shown against your equity on a bar
 - Call EV in chips
